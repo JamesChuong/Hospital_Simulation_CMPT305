@@ -1,0 +1,3 @@
+/home/james/CMPT305/assignments/305_a6/cmake-build-debug/CMakeFiles/305_a6.dir
+/home/james/CMPT305/assignments/305_a6/cmake-build-debug/CMakeFiles/edit_cache.dir
+/home/james/CMPT305/assignments/305_a6/cmake-build-debug/CMakeFiles/rebuild_cache.dir
