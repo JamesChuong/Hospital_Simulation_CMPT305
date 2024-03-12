@@ -5,7 +5,8 @@
 #include <iostream>
 #include <vector>
 #include "EventList.cpp"
-
+#include "Hospital.cpp"
+#include <queue>
 using namespace std;
 
 //Command line arguments
@@ -25,15 +26,16 @@ double currentTime;
 struct Event{
     double timeOfEvent;
     int type;
-    double nodeArrivalTime;
+    double nodeEvaluationTime;
     double nodeServiceTime;
 };
 
 struct Patient{
     double arrivalTime;
-    double evaluatiomTime;
+    double evaluationTime;
     double treatmentTime;
     double priorityValue;
+    double nurseNumber;
 };
 
 int verifyCommandLineArguments(int argc, char* argv[]){
@@ -90,6 +92,7 @@ int verifyCommandLineArguments(int argc, char* argv[]){
     return 1;
 }
 
+queue<Patient> initializeQueue(double lambda, double total_patients);
 
 void simulation();
 

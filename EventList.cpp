@@ -10,7 +10,7 @@ using namespace std;
 class EventList {
 private:
 
-    //The implementation of the event list is a min heap, that way removals are done n O(log(n)) time
+    //The implementation of the event list is a min heap, that way removals are done in O(log(n)) time
     vector<struct Event> eventList;
 
     void bubbleDown(int index){

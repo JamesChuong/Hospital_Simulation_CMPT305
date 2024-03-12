@@ -5,4 +5,5 @@ set(CMAKE_CXX_STANDARD 14)
 
 add_executable(305_a6
         EventList.cpp
-        main.cpp)
+        main.cpp
+        Hospital.cpp)
