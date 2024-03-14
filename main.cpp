@@ -5,7 +5,7 @@
 #include <iostream>
 #include <vector>
 #include "EventList.cpp"
-#include "Hospital.cpp"
+#include "EvaluationQueue.cpp"
 #include <queue>
 using namespace std;
 
@@ -27,7 +27,11 @@ struct Event{
     double timeOfEvent;
     int type;
     double nodeEvaluationTime;
-    double nodeServiceTime;
+    double nodeTreatmentTime;
+    double nodeArrivalTime;
+    double nurseNumber;
+    double roomNumber;
+    double priorityValue;
 };
 
 struct Patient{
@@ -35,7 +39,6 @@ struct Patient{
     double evaluationTime;
     double treatmentTime;
     double priorityValue;
-    double nurseNumber;
 };
 
 int verifyCommandLineArguments(int argc, char* argv[]){
