@@ -23,22 +23,19 @@ double seed = 0;
 //Global variables
 double currentTime;
 
-struct Event{
-    double timeOfEvent;
-    int type;
-    double nodeEvaluationTime;
-    double nodeTreatmentTime;
-    double nodeArrivalTime;
-    double nurseNumber;
-    double roomNumber;
-    double priorityValue;
-};
-
 struct Patient{
     double arrivalTime;
     double evaluationTime;
     double treatmentTime;
     double priorityValue;
+    double nurseNumber;
+    double roomNumber;
+};
+
+struct Event{
+    double timeOfEvent;
+    int type;
+    Patient patient;
 };
 
 int verifyCommandLineArguments(int argc, char* argv[]){

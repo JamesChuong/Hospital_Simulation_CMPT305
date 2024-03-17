@@ -9,16 +9,16 @@
 
 class PriorityQueue{
 private:
+
     double num_rooms = 0;
-    double num_janitors = 0;
-    double mu_treatment = 0;
-    double mu_cleanup = 0;
+    double cumulativeWaitingTime;
+    double cumulativeResponseTime;
 
     struct Room{
-        bool isBeingCleaned;
-        bool isReady;
+        bool isReady;       //true if it is ready for patients, false otherwise
     };
 
+    vector<Room> Rooms;
     vector<Patient> priorityList;
 
     void bubbleDown(int index){
@@ -47,7 +47,7 @@ private:
         }
     }
 
-    void pushFromPriorityList(Patient newPatient){
+    void pushIntoPriorityList(Patient newPatient){
         priorityList.push_back(newPatient);
         bubbleUp(priorityList.size()-1);
     }
@@ -60,7 +60,54 @@ private:
         bubbleDown(0);
     }
 
+    void peek(Patient* patient){
+        if(priorityList.empty()) return;
+        *patient = priorityList.front();
+    }
+
 public:
 
+    PriorityQueue(double num_rooms){
+        this->num_rooms = num_rooms;
+        for(int i = 0; i < this->num_rooms; i++){
+            Rooms[i].isReady = true;
+        }
+    }
 
+    void processArrivalIntoPriorityQueue(Patient patient, EventList eventList){
+
+        pushIntoPriorityList(patient);
+
+        for(int i = 0; i < num_rooms; i++){
+            if(Rooms[i].isReady){
+                patient.roomNumber = i;
+                Event arrivalToPQ;
+                arrivalToPQ.timeOfEvent = patient.arrivalTime;
+                arrivalToPQ.patient = patient;
+                arrivalToPQ.type = 5;
+                eventList.push(arrivalToPQ);
+            }
+        }
+    }
+
+    void processTreatmentEvent(Event treatmentEvent, EventList eventList){
+        if(priorityList.empty()) return;
+
+        Patient nextPatient;
+        peek(&nextPatient);
+        popFromPriorityList();
+        Rooms[treatmentEvent.patient.roomNumber].isReady = false;
+        if(currentTime % 60 > 6){
+            cumulativeWaitingTime += (treatmentEvent.timeOfEvent - nextPatient.arrivalTime);
+        }
+
+        if(!priorityList.empty()){
+            Event departureFromRoom;
+            departureFromRoom.timeOfEvent = treatmentEvent.timeOfEvent+nextPatient.treatmentTime;
+            departureFromRoom.type = 6;
+            departureFromRoom.patient = nextPatient;
+            eventList.push(departureFromRoom);
+        }
+
+    }
 };

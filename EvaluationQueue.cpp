@@ -47,12 +47,11 @@ public:
 
             for(int i = 0; i < Nurses.size(); i++){
                 if(!Nurses[i].isBusy){
+                    newPatient.nurseNumber = i;
                     Event newServiceEvent;
                     newServiceEvent.timeOfEvent = newPatient.arrivalTime;
                     newServiceEvent.type = 2;
-                    newServiceEvent.nodeEvaluationTime = -99999;
-                    newServiceEvent.nodeEvaluationTime = -99999;
-                    newServiceEvent.nurseNumber = i;
+                    newServiceEvent.patient = newPatient;
                     eventList.push(newServiceEvent);
                     return;
                 }
@@ -68,7 +67,7 @@ public:
         Patient nextPatient = evaluationQueue.front();
         evaluationQueue.pop();
 
-        Nurses[serviceEvent.nurseNumber].isBusy = true;
+        Nurses[serviceEvent.patient.nurseNumber].isBusy = true;
 
         if(currentTime%60 > 6){
             double timeLastServiceEvent = serviceEvent.timeOfEvent;
@@ -78,27 +77,22 @@ public:
         Event departureFromEvaluation;
         departureFromEvaluation.timeOfEvent = serviceEvent.timeOfEvent+nextPatient.evaluationTime;
         departureFromEvaluation.type = 3;
-        departureFromEvaluation.priorityValue = priorityValue;
-        departureFromEvaluation.nodeEvaluationTime = -99999;
-        departureFromEvaluation.nodeTreatmentTime = -99999;
-        departureFromEvaluation.nurseNumber = serviceEvent.nurseNumber;
+        departureFromEvaluation.patient.priorityValue = priorityValue;
+        departureFromEvaluation.patient.nurseNumber = serviceEvent.patient.nurseNumber;
         eventList.push(departureFromEvaluation);
     }
 
     void processDeparture(Event departureEvent, EventList eventList){
 
-        Nurses[departureEvent.nurseNumber].isBusy = false;
+        Nurses[departureEvent.patient.nurseNumber].isBusy = false;
         numPatientsInQueue--;
         numDepartures++;
         if(!evaluationQueue.empty()){
             Event arrivalToPriorityQueue;
             arrivalToPriorityQueue.timeOfEvent = departureEvent.timeOfEvent;
             arrivalToPriorityQueue.type = 4;
-            arrivalToPriorityQueue.priorityValue = departureEvent.priorityValue;
-            arrivalToPriorityQueue.nodeTreatmentTime = -99999;
-            arrivalToPriorityQueue.roomNumber = -99999;
-            arrivalToPriorityQueue.nodeEvaluationTime = -99999;
-            arrivalToPriorityQueue.nurseNumber = -99999;
+            arrivalToPriorityQueue.patient = departureEvent.patient;
+            arrivalToPriorityQueue.patient.arrivalTime = currentTime;
             eventList.push(arrivalToPriorityQueue);
         }
 
