@@ -21,6 +21,10 @@ private:
         if(reinterpret_cast<unsigned long>(left) <= eventList.size() - 1){
             if(eventList[leftChild].timeOfEvent > eventList[rightChild].timeOfEvent){
                 smallerChild = rightChild;
+            } else if (eventList[leftChild].timeOfEvent == eventList[rightChild].timeOfEvent){
+                if(eventList[leftChild].type < eventList[rightChild].type){
+                    smallerChild = rightChild;
+                }
             }
             if(eventList[smallerChild].timeOfEvent < eventList[index].timeOfEvent){
                 swap(eventList[smallerChild], eventList[index]);

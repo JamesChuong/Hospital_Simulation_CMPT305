@@ -17,10 +17,10 @@ private:
     double total_patients = 0;
     double numPatientsInQueue = 0;
     double num_nurses = 0;
-    double numDepartures;
+    double numPatientsFinishingEvaluation = 0;
     //Statistics
     double cumulativeEvaluationWaitingTime = 0;
-
+    double droppedArrivals = 0;
     struct Nurse{
         bool isBusy;     //false for busy, true otherwise
     };
@@ -56,20 +56,19 @@ public:
                     return;
                 }
             }
+        } else {
+            droppedArrivals++;
         }
     }
 
     void processEvaluation(Event serviceEvent, EventList eventList){
-
         if(evaluationQueue.empty()) return;
-
+        numPatientsFinishingEvaluation++;
         srand(seed);
         Patient nextPatient = evaluationQueue.front();
         evaluationQueue.pop();
-
         Nurses[serviceEvent.patient.nurseNumber].isBusy = true;
-
-        if(currentTime%60 > 6){
+        if(currentTime % 60 > 6){
             double timeLastServiceEvent = serviceEvent.timeOfEvent;
             cumulativeEvaluationWaitingTime += (timeLastServiceEvent-nextPatient.arrivalTime);
         }
@@ -83,24 +82,24 @@ public:
     }
 
     void processDeparture(Event departureEvent, EventList eventList){
-
         Nurses[departureEvent.patient.nurseNumber].isBusy = false;
         numPatientsInQueue--;
-        numDepartures++;
         if(!evaluationQueue.empty()){
             Event arrivalToPriorityQueue;
             arrivalToPriorityQueue.timeOfEvent = departureEvent.timeOfEvent;
             arrivalToPriorityQueue.type = 4;
             arrivalToPriorityQueue.patient = departureEvent.patient;
-            arrivalToPriorityQueue.patient.arrivalTime = currentTime;
+            arrivalToPriorityQueue.patient.arrivalTimeIntoPQ = currentTime;
             eventList.push(arrivalToPriorityQueue);
         }
-
     }
 
-    double returnStatistics(){
-        return cumulativeEvaluationWaitingTime/numDepartures;
+    double returnAvgWaitTime(){
+        return cumulativeEvaluationWaitingTime/numPatientsFinishingEvaluation;
     }
 
+    double returnDroppedArrivals(){
+        return droppedArrivals;
+    };
 };
 

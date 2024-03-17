@@ -7,4 +7,5 @@ add_executable(305_a6
         EventList.cpp
         main.cpp
         EvaluationQueue.cpp
-        PriorityQueue.cpp)
+        PriorityQueue.cpp
+        RoomCleanUpQueue.cpp)

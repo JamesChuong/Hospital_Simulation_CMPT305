@@ -25,6 +25,7 @@ double currentTime;
 
 struct Patient{
     double arrivalTime;
+    double arrivalTimeIntoPQ;   //Time the patient arrived in the priority queue
     double evaluationTime;
     double treatmentTime;
     double priorityValue;
@@ -32,10 +33,18 @@ struct Patient{
     double roomNumber;
 };
 
+struct Room{
+    bool isReady;       //true if it is ready for patients, false otherwise
+    int janitorNumber;  //The janitor assigned to clean it up
+    int roomNumber;
+    double arrivalTimeForCleanup;
+};
+
 struct Event{
     double timeOfEvent;
     int type;
     Patient patient;
+    Room room;
 };
 
 int verifyCommandLineArguments(int argc, char* argv[]){

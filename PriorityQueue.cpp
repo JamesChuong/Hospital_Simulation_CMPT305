@@ -3,7 +3,6 @@
 //
 #include <vector>
 #include <iostream>
-#include <queue>
 #include "main.cpp"
 #include "EvaluationQueue.cpp"
 
@@ -11,13 +10,11 @@ class PriorityQueue{
 private:
 
     double num_rooms = 0;
-    double cumulativeWaitingTime;
-    double cumulativeResponseTime;
-
-    struct Room{
-        bool isReady;       //true if it is ready for patients, false otherwise
-    };
-
+    double cumulativeWaitingTime = 0;
+    double cumulativeResponseTime = 0;
+    double numPatientsInPQ = 0;
+    double numDepartures = 0;
+    double numPatientsFinishingTreatment = 0;
     vector<Room> Rooms;
     vector<Patient> priorityList;
 
@@ -71,43 +68,76 @@ public:
         this->num_rooms = num_rooms;
         for(int i = 0; i < this->num_rooms; i++){
             Rooms[i].isReady = true;
+            Rooms[i].roomNumber = i;
         }
     }
 
     void processArrivalIntoPriorityQueue(Patient patient, EventList eventList){
-
         pushIntoPriorityList(patient);
-
+        numPatientsInPQ++;
         for(int i = 0; i < num_rooms; i++){
             if(Rooms[i].isReady){
+                Event arrivalToRoom;
                 patient.roomNumber = i;
-                Event arrivalToPQ;
-                arrivalToPQ.timeOfEvent = patient.arrivalTime;
-                arrivalToPQ.patient = patient;
-                arrivalToPQ.type = 5;
-                eventList.push(arrivalToPQ);
+                arrivalToRoom.timeOfEvent = patient.arrivalTimeIntoPQ;
+                arrivalToRoom.patient = patient;
+                arrivalToRoom.type = 5;
+                eventList.push(arrivalToRoom);
             }
         }
     }
 
     void processTreatmentEvent(Event treatmentEvent, EventList eventList){
         if(priorityList.empty()) return;
-
+        numPatientsFinishingTreatment++;
         Patient nextPatient;
         peek(&nextPatient);
         popFromPriorityList();
-        Rooms[treatmentEvent.patient.roomNumber].isReady = false;
+        Rooms[treatmentEvent.roomNumber].isReady = false;
         if(currentTime % 60 > 6){
             cumulativeWaitingTime += (treatmentEvent.timeOfEvent - nextPatient.arrivalTime);
         }
+        Event departureFromRoom;
+        departureFromRoom.timeOfEvent = treatmentEvent.timeOfEvent+nextPatient.treatmentTime;
+        departureFromRoom.type = 6;
+        departureFromRoom.patient = nextPatient;
+        eventList.push(departureFromRoom);
+    }
 
-        if(!priorityList.empty()){
-            Event departureFromRoom;
-            departureFromRoom.timeOfEvent = treatmentEvent.timeOfEvent+nextPatient.treatmentTime;
-            departureFromRoom.type = 6;
-            departureFromRoom.patient = nextPatient;
-            eventList.push(departureFromRoom);
+    void processDepartureFromPQ(Event departureEvent, EventList eventList){
+        numPatientsInPQ--;
+        numDepartures++;
+        if(currentTime % 60 > 6){
+            cumulativeResponseTime += (departureEvent.timeOfEvent - departureEvent.patient.arrivalTime);
         }
+        Event roomCleanupEvent;
+        roomCleanupEvent.timeOfEvent = departureEvent.timeOfEvent;
+        roomCleanupEvent.type = 7;
+        roomCleanupEvent.patient = departureEvent.patient;
+        roomCleanupEvent.room = Rooms[departureEvent.patient.roomNumber];
+        roomCleanupEvent.room.arrivalTimeForCleanup = departureEvent.timeOfEvent;
+        eventList.push(roomCleanupEvent);
+    }
 
+    void processFinishingCleanUp(Event roomIsReadyEvent, EventList eventList){
+        Rooms[roomIsReadyEvent.room.roomNumber].isReady = true;
+        if(!priorityList.empty()){
+            Event nextServiceEvent;
+            nextServiceEvent.timeOfEvent = roomIsReadyEvent.timeOfEvent;
+            nextServiceEvent.type = 5;
+            nextServiceEvent.room = Rooms[roomIsReadyEvent.room.roomNumber];
+            eventList.push(nextServiceEvent);
+        }
+    }
+    double returnNumPatientsInPQ(){
+        return numPatientsInPQ;
+    }
+
+    double returnAvgWaitTime(){
+        return cumulativeWaitingTime/numPatientsFinishingTreatment;
+    }
+
+    double returnAvgResponseTime(){
+        return cumulativeResponseTime/numDepartures;
     }
 };
