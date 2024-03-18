@@ -62,4 +62,7 @@ public:
         return eventList[0];
     }
 
+    bool isEmpty(){
+        return eventList.empty();
+    }
 };

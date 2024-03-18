@@ -10,7 +10,7 @@
 
 using namespace std;
 
-class Hospital{
+class EvaluationQueue{
 
 private:
 
@@ -30,7 +30,7 @@ private:
 
 public:
 
-    Hospital(double mu_eval, double num_nurses, double total_patients){
+    EvaluationQueue(double num_nurses, double total_patients){
         this->total_patients = total_patients;
         this->num_nurses = num_nurses;
         for(int i = 0; i < this->num_nurses; i++){
@@ -68,7 +68,7 @@ public:
         Patient nextPatient = evaluationQueue.front();
         evaluationQueue.pop();
         Nurses[serviceEvent.patient.nurseNumber].isBusy = true;
-        if(currentTime % 60 > 6){
+        if(currentTime / 60 > 6){
             double timeLastServiceEvent = serviceEvent.timeOfEvent;
             cumulativeEvaluationWaitingTime += (timeLastServiceEvent-nextPatient.arrivalTime);
         }
@@ -101,5 +101,9 @@ public:
     double returnDroppedArrivals(){
         return droppedArrivals;
     };
+
+    double returnNumPatientsInEQueue(){
+        return numPatientsInQueue;
+    }
 };
 

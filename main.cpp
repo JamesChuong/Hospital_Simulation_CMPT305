@@ -6,6 +6,8 @@
 #include <vector>
 #include "EventList.cpp"
 #include "EvaluationQueue.cpp"
+#include "PriorityQueue.cpp"
+#include "RoomCleanUpQueue.cpp"
 #include <queue>
 using namespace std;
 
@@ -22,6 +24,7 @@ double seed = 0;
 
 //Global variables
 double currentTime;
+double arrivalTimeOfPrevPatient = 0;
 
 struct Patient{
     double arrivalTime;
@@ -36,8 +39,8 @@ struct Patient{
 struct Room{
     bool isReady;       //true if it is ready for patients, false otherwise
     int janitorNumber;  //The janitor assigned to clean it up
-    int roomNumber;
-    double arrivalTimeForCleanup;
+    int roomNumber;     //The number it has been assigned to
+    double arrivalTimeForCleanup;   //The time it entered cleanup
 };
 
 struct Event{
@@ -46,6 +49,10 @@ struct Event{
     Patient patient;
     Room room;
 };
+
+//The event list for the entire simulation
+EventList eventList = EventList();
+
 
 int verifyCommandLineArguments(int argc, char* argv[]){
     if(argc < 10) {
@@ -101,17 +108,67 @@ int verifyCommandLineArguments(int argc, char* argv[]){
     return 1;
 }
 
-queue<Patient> initializeQueue(double lambda, double total_patients);
+//Processes arrival of a patient into the hospital (before entering the "E" queue) and schedules the same event
+//for the next patient
+Patient processNewArrival(Patient newPatient, Event arrivalEvent){
 
-void simulation();
+    //Schedule arrival into the hospital
+    Event arrivalIntoEQueue;
+    arrivalIntoEQueue.timeOfEvent = newPatient.arrivalTime;
+    arrivalIntoEQueue.type = 1;
+    arrivalIntoEQueue.patient = newPatient;
+    eventList.push(arrivalIntoEQueue);
 
+    //Schedule the arrival of the next patient
+    Patient nextPatient;
+    nextPatient.arrivalTime = arrivalTimeOfPrevPatient + (-(1 / lambda) * log(rand() / (RAND_MAX + 1.0)));
+    nextPatient.treatmentTime = (-(1/mu_treatment)*log(rand()/(RAND_MAX+1.0)));
+    nextPatient.evaluationTime = (-(1/mu_eval)*log(rand()/(RAND_MAX+1.0)));
+    arrivalTimeOfPrevPatient = nextPatient.arrivalTime;
+
+    Event nextPatientArrival;
+    nextPatientArrival.timeOfEvent = nextPatient.arrivalTime;
+    nextPatientArrival.type = 0;
+    nextPatientArrival.patient = nextPatient;
+    eventList.push(nextPatientArrival);
+
+}
+
+void simulation(){
+
+    //Initialize the first patient
+    Patient firstPatient;
+    firstPatient.arrivalTime = arrivalTimeOfPrevPatient + (-(1 / lambda) * log(rand() / (RAND_MAX + 1.0)));
+    firstPatient.evaluationTime = (-(1 / mu_eval) * log(rand() / (RAND_MAX + 1.0)));
+    firstPatient.treatmentTime = (-(1 / mu_treatment) * log(rand() / (RAND_MAX + 1.0)));
+
+    //Initialize the first event
+    Event firstPatientArriving;
+    firstPatientArriving.timeOfEvent = firstPatient.arrivalTime;
+    firstPatientArriving.type = 0;
+    firstPatientArriving.patient = firstPatient;
+    eventList.push(firstPatientArriving);
+
+    EvaluationQueue EQueue = EvaluationQueue(num_nurses, total_patients);
+    PriorityQueue PQueue = PriorityQueue(num_rooms);
+
+    while(currentTime/60 < 30){
+
+        if(eventList.isEmpty()){
+            printStatistics(EQueue.returnNumPatientsInEQueue()+PQueue.returnNumPatientsInPQ()
+                            , EQueue.returnAvgWaitTime(), PQueue.returnAvgWaitTime()
+                            , PQueue.returnAvgResponseTime(), EQueue.returnDroppedArrivals());
+        }
+    }
+
+}
 
 
 int main(int argc, char* argv[]){
 
     int inputsAllValid = verifyCommandLineArguments(argc, argv);
     if(inputsAllValid){
-
+        srand(seed);
     }
 
 }

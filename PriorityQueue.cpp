@@ -82,6 +82,7 @@ public:
                 arrivalToRoom.timeOfEvent = patient.arrivalTimeIntoPQ;
                 arrivalToRoom.patient = patient;
                 arrivalToRoom.type = 5;
+                arrivalToRoom.room = Rooms[i];
                 eventList.push(arrivalToRoom);
             }
         }
@@ -93,8 +94,8 @@ public:
         Patient nextPatient;
         peek(&nextPatient);
         popFromPriorityList();
-        Rooms[treatmentEvent.roomNumber].isReady = false;
-        if(currentTime % 60 > 6){
+        Rooms[treatmentEvent.room.roomNumber].isReady = false;
+        if(currentTime / 60 > 6){
             cumulativeWaitingTime += (treatmentEvent.timeOfEvent - nextPatient.arrivalTime);
         }
         Event departureFromRoom;
@@ -107,7 +108,7 @@ public:
     void processDepartureFromPQ(Event departureEvent, EventList eventList){
         numPatientsInPQ--;
         numDepartures++;
-        if(currentTime % 60 > 6){
+        if(currentTime / 60 > 6){
             cumulativeResponseTime += (departureEvent.timeOfEvent - departureEvent.patient.arrivalTime);
         }
         Event roomCleanupEvent;
