@@ -4,7 +4,6 @@
 #include <vector>
 #include <iostream>
 #include "main.cpp"
-#include "EvaluationQueue.cpp"
 
 class PriorityQueue{
 private:
@@ -140,5 +139,9 @@ public:
 
     double returnAvgResponseTime(){
         return cumulativeResponseTime/numDepartures;
+    }
+
+    int returnNumDepartures(){
+        return numDepartures;
     }
 };

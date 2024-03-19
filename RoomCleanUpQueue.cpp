@@ -3,7 +3,6 @@
 //
 
 #include <vector>
-#include <iostream>
 #include <queue>
 #include "main.cpp"
 class RoomCleanUpQueue{
@@ -14,7 +13,8 @@ private:
 
     double mu_cleanup;
     double numJanitors;
-    double cumulativeWaitingTime = 0;
+    double cumulativeWaitingTimePlusWaitingTime = 0;
+    int numDepartures = 0;
 
     struct Janitor{
         bool notBusy;    //true if a janitor is not cleaning a room, false otherwise
@@ -52,7 +52,7 @@ public:
         RoomQueue.pop();
         nextRoom.janitorNumber = cleanUpEvent.room.janitorNumber;
         Janitors[cleanUpEvent.room.janitorNumber].notBusy = false;
-        cumulativeWaitingTime += (cleanUpEvent.timeOfEvent - nextRoom.arrivalTimeForCleanup);
+        cumulativeWaitingTimePlusWaitingTime += (cleanUpEvent.timeOfEvent - nextRoom.arrivalTimeForCleanup + 1/mu_cleanup);
 
         Event finishingCleanUpEvent;
         finishingCleanUpEvent.timeOfEvent = cleanUpEvent.timeOfEvent + (1/mu_cleanup);
@@ -64,6 +64,7 @@ public:
 
     void processFinishingCleanUp(Event finishCleanUpEvent, EventList eventList){
         Janitors[finishCleanUpEvent.room.janitorNumber].notBusy = true;
+        numDepartures++;
         if(!RoomQueue.empty()){
             Event nextCleanUpEvent;
             nextCleanUpEvent.timeOfEvent = finishCleanUpEvent.timeOfEvent;
@@ -77,4 +78,9 @@ public:
         roomIsReadyEvent.room = finishCleanUpEvent.room;
         eventList.push(roomIsReadyEvent);
     }
+
+    double returnAvgCleanUpTime(){
+        return cumulativeWaitingTimePlusWaitingTime/numDepartures;
+    }
+
 };
