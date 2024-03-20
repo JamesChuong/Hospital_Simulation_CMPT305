@@ -8,4 +8,7 @@ add_executable(305_a6
         main.cpp
         EvaluationQueue.cpp
         PriorityQueue.cpp
-        RoomCleanUpQueue.cpp)
+        RoomCleanUpQueue.cpp
+        EvaluationQueue.h
+        PriorityQueue.h
+        RoomCleanUpQueue.h)

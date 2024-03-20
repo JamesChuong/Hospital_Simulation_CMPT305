@@ -3,12 +3,13 @@
 //
 
 #include <iostream>
-#include <vector>
-#include "EventList.cpp"
-#include "EvaluationQueue.cpp"
-#include "PriorityQueue.cpp"
-#include "RoomCleanUpQueue.cpp"
-#include <queue>
+#include <math.h>
+#include "main.h"
+#include "EventList.h"
+#include "EvaluationQueue.h"
+#include "PriorityQueue.h"
+#include "RoomCleanUpQueue.h"
+
 using namespace std;
 
 //Command line arguments
@@ -23,36 +24,9 @@ double num_janitors = 0;
 double seed = 0;
 
 //Global variables
-double currentTime;
+double currentTime = 0;
 double arrivalTimeOfPrevPatient = 0;
-
-struct Patient{
-    double arrivalTime;
-    double arrivalTimeIntoPQ;   //Time the patient arrived in the priority queue
-    double evaluationTime;
-    double treatmentTime;
-    double priorityValue;
-    double nurseNumber;
-    double roomNumber;
-};
-
-struct Room{
-    bool isReady;       //true if it is ready for patients, false otherwise
-    int janitorNumber;  //The janitor assigned to clean it up
-    int roomNumber;     //The number it has been assigned to
-    double arrivalTimeForCleanup;   //The time it entered cleanup
-};
-
-struct Event{
-    double timeOfEvent;
-    int type;
-    Patient patient;
-    Room room;
-};
-
-//The event list for the entire simulation
-EventList eventList = EventList();
-
+EventList* eventList = new EventList();
 
 int verifyCommandLineArguments(int argc, char* argv[]){
     if(argc < 10) {
@@ -117,7 +91,7 @@ Patient processNewArrival(Patient newPatient, Event arrivalEvent){
     arrivalIntoEQueue.timeOfEvent = newPatient.arrivalTime;
     arrivalIntoEQueue.type = 1;
     arrivalIntoEQueue.patient = newPatient;
-    eventList.push(arrivalIntoEQueue);
+    eventList->push(arrivalIntoEQueue);
 
     //Schedule the arrival of the next patient
     Patient nextPatient;
@@ -130,35 +104,37 @@ Patient processNewArrival(Patient newPatient, Event arrivalEvent){
     nextPatientArrival.timeOfEvent = nextPatient.arrivalTime;
     nextPatientArrival.type = 0;
     nextPatientArrival.patient = nextPatient;
-    eventList.push(nextPatientArrival);
+    eventList->push(nextPatientArrival);
 
+    return nextPatient;
 }
 
 void printStatistics(int numDepartures, double avgNumberPatients, double EQAvgWaitingTime
                      , double PQAvgWaitingTime, double avgResponseTime, double avgCleanupTime ,int droppedArrivals){
     printf("Departures = %d\nMean_num_patients = %lf\n"
-           "Mean_wait_E_queue = %lf\nMean_wait_P_queue = %lf\nMean_cleanup_time = %lf\n"
-           "Dropped_arrivals = %d", numDepartures, avgNumberPatients
-           , EQAvgWaitingTime, PQAvgWaitingTime, avgResponseTime, avgCleanupTime, droppedArrivals);
+           "Mean_wait_E_queue = %lf\nMean_wait_P_queue = %lf\nMean_response_time = %lf\nMean_cleanup_time = %lf\n"
+           "Dropped_arrivals = %d\n", numDepartures, avgNumberPatients, EQAvgWaitingTime, PQAvgWaitingTime, avgResponseTime, avgCleanupTime, droppedArrivals);
 }
 
 void simulation(){
 
-    double avgNumPatients = 0;
+    double avgNumPatients;
     double cumulativeArea = 0;
+
 
     //Initialize the first patient
     Patient firstPatient;
     firstPatient.arrivalTime = arrivalTimeOfPrevPatient + (-(1 / lambda) * log(rand() / (RAND_MAX + 1.0)));
     firstPatient.evaluationTime = (-(1 / mu_eval) * log(rand() / (RAND_MAX + 1.0)));
     firstPatient.treatmentTime = (-(1 / mu_treatment) * log(rand() / (RAND_MAX + 1.0)));
+    arrivalTimeOfPrevPatient = firstPatient.arrivalTime;
 
     //Initialize the first event and push it into the event list
     Event firstPatientArriving;
     firstPatientArriving.timeOfEvent = firstPatient.arrivalTime;
     firstPatientArriving.type = 0;
     firstPatientArriving.patient = firstPatient;
-    eventList.push(firstPatientArriving);
+    eventList->push(firstPatientArriving);
 
     //Initialize subsystems
     EvaluationQueue EQueue = EvaluationQueue(num_nurses, total_patients);
@@ -169,15 +145,16 @@ void simulation(){
     double timeLastEvent = 0;
     while(currentTime/60 < 30){
 
-        if(eventList.isEmpty()){
+        if(eventList->isEmpty()){
+            cout << "Event list is empty!" << endl;
             return;
         }
 
-        Event earlistEvent = eventList.peek();
-        eventList.pop();
-        cumulativeArea += (currentTime-timeLastEvent)*(EQueue.returnNumPatientsInEQueue()+PQueue.returnNumPatientsInPQ());
+        Event earlistEvent = eventList->peek();
+        eventList->pop();
         currentTime = earlistEvent.timeOfEvent;
-
+        cout << currentTime << endl;
+        cumulativeArea += (currentTime-timeLastEvent)*(EQueue.returnNumPatientsInEQueue()+PQueue.returnNumPatientsInPQ());
         timeLastEvent = currentTime;
         if(earlistEvent.type == 0){
             currentPatient = processNewArrival(currentPatient, earlistEvent);
@@ -185,17 +162,17 @@ void simulation(){
             EQueue.processArrivalIntoQueue(earlistEvent.patient, eventList
                                            , PQueue.returnNumPatientsInPQ());
         } else if(earlistEvent.type == 2){
-            EQueue.processEvaluation(earlistEvent, eventList);
+            EQueue.processEvaluation(earlistEvent, eventList, currentTime);
         } else if(earlistEvent.type == 3){
-            EQueue.processDeparture(earlistEvent, eventList);
+            EQueue.processDeparture(earlistEvent, eventList, currentTime);
         } else if(earlistEvent.type == 4){
             PQueue.processArrivalIntoPriorityQueue(earlistEvent.patient, eventList);
         } else if(earlistEvent.type == 5){
-            PQueue.processTreatmentEvent(earlistEvent, eventList);
+            PQueue.processTreatmentEvent(earlistEvent, eventList, currentTime);
         } else if(earlistEvent.type == 6){
-            PQueue.processDepartureFromPQ(earlistEvent, eventList);
+            PQueue.processDepartureFromPQ(earlistEvent, eventList, currentTime);
         } else if(earlistEvent.type == 7){
-            RoomQueue.processArrivalForCleanUp(earlistEvent, eventList);
+            RoomQueue.processArrivalForCleanUp(earlistEvent, eventList, currentTime);
         } else if(earlistEvent.type == 8){
             RoomQueue.processCleanUp(earlistEvent, eventList);
         } else if(earlistEvent.type == 9){
@@ -203,14 +180,19 @@ void simulation(){
         } else if(earlistEvent.type == 10){
             PQueue.processFinishingCleanUp(earlistEvent, eventList);
         }
+
+        avgNumPatients = cumulativeArea/currentTime;
+        if(currentTime/60 == 5){
+            printStatistics(PQueue.returnNumDepartures(), avgNumPatients
+                    , EQueue.returnAvgWaitTime(), PQueue.returnAvgWaitTime()
+                    , PQueue.returnAvgResponseTime(),
+                            RoomQueue.returnAvgCleanUpTime(),
+                            EQueue.returnDroppedArrivals());
+        }
     }
     avgNumPatients = cumulativeArea/currentTime;
-    printStatistics(PQueue.returnNumDepartures(), avgNumPatients
-            , EQueue.returnAvgWaitTime(), PQueue.returnAvgWaitTime()
-            , PQueue.returnAvgResponseTime(),
-                    RoomCleanUpQueue.returnAvgCleanUpTime(),
-                    EQueue.returnDroppedArrivals());
-
+    printStatistics(PQueue.returnNumDepartures(), avgNumPatients, EQueue.returnAvgWaitTime(), PQueue.returnAvgWaitTime(), PQueue.returnAvgResponseTime(),RoomQueue.returnAvgCleanUpTime(),EQueue.returnDroppedArrivals());
+    delete eventList;
 }
 
 int main(int argc, char* argv[]){
@@ -218,6 +200,7 @@ int main(int argc, char* argv[]){
     int inputsAllValid = verifyCommandLineArguments(argc, argv);
     if(inputsAllValid){
         srand(seed);
+        simulation();
     }
 
 }

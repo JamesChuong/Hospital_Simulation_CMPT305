@@ -5,104 +5,93 @@
 #include <vector>
 #include <iostream>
 #include <queue>
-#include "main.cpp"
+#include "main.h"
+#include "EvaluationQueue.h"
+#include "EventList.h"
 
-using namespace std;
-
-class EvaluationQueue{
-
-private:
-
-    double total_patients = 0;
-    double numPatientsInQueue = 0;
-    double num_nurses = 0;
-    double numPatientsFinishingEvaluation = 0;
-    //Statistics
-    double cumulativeEvaluationWaitingTime = 0;
-    double droppedArrivals = 0;
-    struct Nurse{
-        bool isBusy;     //false for busy, true otherwise
-    };
-
-    queue<struct Patient> evaluationQueue;
-    vector<Nurse> Nurses;
-
-public:
-
-    EvaluationQueue(double num_nurses, double total_patients){
-        this->total_patients = total_patients;
-        this->num_nurses = num_nurses;
-        for(int i = 0; i < this->num_nurses; i++){
-            struct Nurse newNurse;
-            newNurse.isBusy = true;
-            Nurses.push_back(newNurse);
-        }
+EvaluationQueue::EvaluationQueue(double num_nurses, double total_patients){
+    this->total_patients = total_patients;
+    this->num_nurses = num_nurses;
+    for(int i = 0; i < this->num_nurses; i++){
+        struct Nurse newNurse;
+        newNurse.isBusy = false;
+        Nurses.push_back(newNurse);
     }
+}
 
-    void processArrivalIntoQueue(Patient newPatient, EventList eventList, int numPatientsInPriorityQueue){
-        if(numPatientsInQueue+numPatientsInPriorityQueue < total_patients){
-            evaluationQueue.push(newPatient);
-            numPatientsInQueue++;
+void EvaluationQueue::processArrivalIntoQueue(Patient newPatient, EventList* eventList, int numPatientsInPriorityQueue){
+    if(numPatientsInQueue+numPatientsInPriorityQueue < total_patients){
+        numPatientsInQueue++;
 
-            for(int i = 0; i < Nurses.size(); i++){
-                if(!Nurses[i].isBusy){
-                    newPatient.nurseNumber = i;
-                    Event newServiceEvent;
-                    newServiceEvent.timeOfEvent = newPatient.arrivalTime;
-                    newServiceEvent.type = 2;
-                    newServiceEvent.patient = newPatient;
-                    eventList.push(newServiceEvent);
-                    return;
-                }
+        for(int i = 0; i < (int)Nurses.size(); i++){
+            if(!Nurses[i].isBusy){
+
+                newPatient.nurseNumber = i;
+                Event newServiceEvent;
+                newServiceEvent.timeOfEvent = newPatient.arrivalTime;
+                newServiceEvent.type = 2;
+                newServiceEvent.patient = newPatient;
+                eventList->push(newServiceEvent);
+                evaluationQueue.push(newPatient);
+                return;
             }
-        } else {
-            droppedArrivals++;
         }
+        evaluationQueue.push(newPatient);
+
+    } else {
+        droppedArrivals++;
+    }
+}
+
+void EvaluationQueue::processEvaluation(Event serviceEvent, EventList* eventList, double currentTime){
+    if(evaluationQueue.empty()) return;
+    numPatientsFinishingEvaluation++;
+    Patient nextPatient = evaluationQueue.front();
+    evaluationQueue.pop();
+    Nurses[serviceEvent.patient.nurseNumber].isBusy = true;
+    if(currentTime / 60 > 6){
+        double timeLastServiceEvent = serviceEvent.timeOfEvent;
+        cumulativeEvaluationWaitingTime += (timeLastServiceEvent-nextPatient.arrivalTime);
     }
 
-    void processEvaluation(Event serviceEvent, EventList eventList){
-        if(evaluationQueue.empty()) return;
-        numPatientsFinishingEvaluation++;
-        srand(seed);
-        Patient nextPatient = evaluationQueue.front();
-        evaluationQueue.pop();
-        Nurses[serviceEvent.patient.nurseNumber].isBusy = true;
-        if(currentTime / 60 > 6){
-            double timeLastServiceEvent = serviceEvent.timeOfEvent;
-            cumulativeEvaluationWaitingTime += (timeLastServiceEvent-nextPatient.arrivalTime);
-        }
-        double priorityValue = (double)rand()/RAND_MAX;
-        Event departureFromEvaluation;
-        departureFromEvaluation.timeOfEvent = serviceEvent.timeOfEvent+nextPatient.evaluationTime;
-        departureFromEvaluation.type = 3;
-        departureFromEvaluation.patient.priorityValue = priorityValue;
-        departureFromEvaluation.patient.nurseNumber = serviceEvent.patient.nurseNumber;
-        eventList.push(departureFromEvaluation);
+    double priorityValue = (double)rand()/RAND_MAX;
+    Event departureFromEvaluation;
+    departureFromEvaluation.timeOfEvent = serviceEvent.timeOfEvent+nextPatient.evaluationTime;
+    departureFromEvaluation.type = 3;
+    departureFromEvaluation.patient.priorityValue = priorityValue;
+    departureFromEvaluation.patient.nurseNumber = serviceEvent.patient.nurseNumber;
+    eventList->push(departureFromEvaluation);
+}
+
+void EvaluationQueue::processDeparture(Event departureEvent, EventList* eventList, double currentTime){
+    Nurses[departureEvent.patient.nurseNumber].isBusy = false;
+    numPatientsInQueue--;
+
+    if(!evaluationQueue.empty()){
+        Event nextEvaluationEvent;
+        nextEvaluationEvent.patient.nurseNumber = departureEvent.patient.nurseNumber;
+        nextEvaluationEvent.timeOfEvent = departureEvent.timeOfEvent;
+        nextEvaluationEvent.type = 2;
+        eventList->push(nextEvaluationEvent);
     }
 
-    void processDeparture(Event departureEvent, EventList eventList){
-        Nurses[departureEvent.patient.nurseNumber].isBusy = false;
-        numPatientsInQueue--;
-        if(!evaluationQueue.empty()){
-            Event arrivalToPriorityQueue;
-            arrivalToPriorityQueue.timeOfEvent = departureEvent.timeOfEvent;
-            arrivalToPriorityQueue.type = 4;
-            arrivalToPriorityQueue.patient = departureEvent.patient;
-            arrivalToPriorityQueue.patient.arrivalTimeIntoPQ = currentTime;
-            eventList.push(arrivalToPriorityQueue);
-        }
-    }
+    Event arrivalToPriorityQueue;
+    arrivalToPriorityQueue.timeOfEvent = departureEvent.timeOfEvent;
+    arrivalToPriorityQueue.type = 4;
+    arrivalToPriorityQueue.patient = departureEvent.patient;
+    arrivalToPriorityQueue.patient.arrivalTimeIntoPQ = currentTime;
+    eventList->push(arrivalToPriorityQueue);
 
-    double returnAvgWaitTime(){
-        return cumulativeEvaluationWaitingTime/numPatientsFinishingEvaluation;
-    }
+}
 
-    double returnDroppedArrivals(){
-        return droppedArrivals;
-    };
+double EvaluationQueue::returnAvgWaitTime(){
+    return cumulativeEvaluationWaitingTime/numPatientsFinishingEvaluation;
+}
 
-    double returnNumPatientsInEQueue(){
-        return numPatientsInQueue;
-    }
+double EvaluationQueue::returnDroppedArrivals(){
+    return droppedArrivals;
 };
 
+double EvaluationQueue::returnNumPatientsInEQueue(){
+    return numPatientsInQueue;
+}
