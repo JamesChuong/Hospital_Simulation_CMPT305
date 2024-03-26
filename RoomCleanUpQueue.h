@@ -29,7 +29,7 @@ class RoomCleanUpQueue{
 
 private:
 
-    queue<Room> RoomQueue;
+    queue<Room*> RoomQueue;
 
     double mu_cleanup = 0;
     double numJanitors = 0;
@@ -41,15 +41,19 @@ private:
     };
     vector<Janitor> Janitors;
 
+    Room* cloneRoom(Room* newRoom);
+
 public:
 
     RoomCleanUpQueue(double mu_cleanup, double numJanitors);
 
-    void processArrivalForCleanUp(Event arrivalEvent, EventList* eventList, double currentTime);
+    ~RoomCleanUpQueue();
 
-    void processCleanUp(Event cleanUpEvent, EventList* eventList);
+    void processArrivalForCleanUp(Event* arrivalEvent, EventList* eventList, double currentTime);
 
-    void processFinishingCleanUp(Event finishCleanUpEvent, EventList* eventList);
+    void processCleanUp(Event* cleanUpEvent, EventList* eventList, double currentTime);
+
+    void processFinishingCleanUp(Event* finishCleanUpEvent, EventList* eventList);
 
     double returnAvgCleanUpTime();
 

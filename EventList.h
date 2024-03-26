@@ -23,7 +23,7 @@ class EventList {
 private:
 
     //The implementation of the event list is a min heap, that way removals are done in O(log(n)) time
-    vector<Event> eventList;
+    vector<Event*> eventList;
 
     void bubbleDown(int index);
 
@@ -31,11 +31,20 @@ private:
 
 public:
 
-    void push(Event newEvent);
+    ~EventList();
+
+    void dumpEventList(){
+        for(int i = 0; i < (int)eventList.size(); i++){
+            cout << "{" << eventList[i]->timeOfEvent << ", " << eventList[i]->type << "}" << endl;
+        }
+    }
+
+    void push(Event* newEvent);
 
     void pop();
 
-     Event peek();
+     Event* peek();
 
     bool isEmpty();
+
 };

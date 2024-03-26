@@ -32,30 +32,42 @@ private:
     double numPatientsInPQ = 0;
     double numDepartures = 0;
     double numPatientsFinishingTreatment = 0;
-    vector<Room> Rooms;
-    vector<Patient> priorityList;
+    vector<Room*> Rooms;
+    vector<Patient*> priorityList;
 
     void bubbleDown(int index);
 
     void bubbleUp(int index);
 
-    void pushIntoPriorityList(Patient newPatient);
+    void pushIntoPriorityList(Patient* newPatient);
 
     void popFromPriorityList();
 
-    void peek(Patient* patient);
+    Patient* peek();
+
+    Patient* clonePatient(Patient* newPatient);
+    Room* cloneRoom(Room* newRoom);
 
 public:
 
     PriorityQueue(double num_rooms);
 
-    void processArrivalIntoPriorityQueue(Patient patient, EventList* eventList);
+    ~PriorityQueue();
 
-    void processTreatmentEvent(Event treatmentEvent, EventList* eventList, double currentTime);
+    void dumpPQ(){
+        for(int i = 0; i < (int)priorityList.size(); i++){
+            cout << "{" << priorityList[i]->arrivalTimeIntoPQ << ", " << priorityList[i]->priorityValue << "}, ";
+        }
+        cout << endl;
+    }
 
-    void processDepartureFromPQ(Event departureEvent, EventList* eventList, double currentTime);
+    void processArrivalIntoPriorityQueue(Event* newArrival, EventList* eventList);
 
-    void processFinishingCleanUp(Event roomIsReadyEvent, EventList* eventList);
+    void processTreatmentEvent(Event* treatmentEvent, EventList* eventList, double currentTime);
+
+    void processDepartureFromPQ(Event* departureEvent, EventList* eventList, double currentTime);
+
+    void processFinishingCleanUp(Event* roomIsReadyEvent, EventList* eventList);
 
     double returnNumPatientsInPQ();
 

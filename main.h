@@ -37,13 +37,15 @@ struct Room{
 struct Event{
     double timeOfEvent;
     int type;
-    Patient patient;
-    Room room;
+    Patient* patient;
+    Room* room;
 };
+
+Patient* clonePatient(Patient* newPatient);
 
 int verifyCommandLineArguments(int argc, char* argv[]);
 
-Patient processNewArrival(Patient newPatient, Event arrivalEvent);
+void processNewArrival(Patient* newPatient, Event* arrivalEvent);
 
 void printStatistics(int numDepartures, double avgNumberPatients, double EQAvgWaitingTime
         , double PQAvgWaitingTime, double avgResponseTime, double avgCleanupTime ,int droppedArrivals);

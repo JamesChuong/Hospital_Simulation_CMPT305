@@ -28,6 +28,7 @@ class EvaluationQueue{
 
 private:
 
+    double mu_treatment = 0;
     double total_patients = 0;
     double numPatientsInQueue = 0;
     double num_nurses = 0;
@@ -39,18 +40,22 @@ private:
         bool isBusy;     //false for busy, true otherwise
     };
 
-    queue<struct Patient> evaluationQueue;
+    queue<struct Patient*> evaluationQueue;
     vector<Nurse> Nurses;
+
+    Patient* clonePatient(Patient* newPatient);
 
 public:
 
-    EvaluationQueue(double num_nurses, double total_patients);
+    EvaluationQueue(double num_nurses, double total_patients, double mu_treatment);
 
-    void processArrivalIntoQueue(Patient newPatient, EventList* eventList, int numPatientsInPriorityQueue);
+    ~EvaluationQueue();
 
-    void processEvaluation(Event serviceEvent, EventList* eventList, double currentTime);
+    void processArrivalIntoQueue(Patient* newPatient, EventList* eventList, int numPatientsInPriorityQueue);
 
-    void processDeparture(Event departureEvent, EventList* eventList, double currentTime);
+    void processEvaluation(Event* serviceEvent, EventList* eventList, double currentTime);
+
+    void processDeparture(Event* departureEvent, EventList* eventList, double currentTime);
 
     double returnAvgWaitTime();
 

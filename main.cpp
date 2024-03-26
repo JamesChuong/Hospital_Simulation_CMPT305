@@ -82,31 +82,49 @@ int verifyCommandLineArguments(int argc, char* argv[]){
     return 1;
 }
 
+Patient* clonePatient(Patient* newPatient){
+    if(newPatient == NULL) return NULL;
+    Patient* clonedPatient = new Patient;
+    clonedPatient->nurseNumber = newPatient->nurseNumber;
+    clonedPatient->priorityValue = newPatient->priorityValue;
+    clonedPatient->arrivalTimeIntoPQ = newPatient->arrivalTimeIntoPQ;
+    clonedPatient->roomNumber = newPatient->roomNumber;
+    clonedPatient->arrivalTime = newPatient->arrivalTime;
+    clonedPatient->treatmentTime = newPatient-> treatmentTime;
+    clonedPatient->evaluationTime = newPatient->evaluationTime;
+    return clonedPatient;
+}
+
 //Processes arrival of a patient into the hospital (before entering the "E" queue) and schedules the same event
 //for the next patient
-Patient processNewArrival(Patient newPatient, Event arrivalEvent){
-
+void processNewArrival(Patient* newPatient, Event* arrivalEvent){
     //Schedule arrival into the hospital
-    Event arrivalIntoEQueue;
-    arrivalIntoEQueue.timeOfEvent = newPatient.arrivalTime;
-    arrivalIntoEQueue.type = 1;
-    arrivalIntoEQueue.patient = newPatient;
+    Event* arrivalIntoEQueue = new Event;
+    arrivalIntoEQueue->timeOfEvent = newPatient->arrivalTime;
+    arrivalIntoEQueue->type = 1;
+    arrivalIntoEQueue->patient = clonePatient(newPatient);
+    arrivalIntoEQueue->room = NULL;
     eventList->push(arrivalIntoEQueue);
 
     //Schedule the arrival of the next patient
-    Patient nextPatient;
-    nextPatient.arrivalTime = arrivalTimeOfPrevPatient + (-(1 / lambda) * log(rand() / (RAND_MAX + 1.0)));
-    nextPatient.treatmentTime = (-(1/mu_treatment)*log(rand()/(RAND_MAX+1.0)));
-    nextPatient.evaluationTime = (-(1/mu_eval)*log(rand()/(RAND_MAX+1.0)));
-    arrivalTimeOfPrevPatient = nextPatient.arrivalTime;
+    Patient* nextPatient = new Patient;
+    nextPatient->arrivalTime = arrivalTimeOfPrevPatient + (-(1 / lambda) * log(rand() / (RAND_MAX + 1.0)));
+    nextPatient->treatmentTime = 0;
+    nextPatient->evaluationTime = (-(1/mu_eval)*log(rand()/(RAND_MAX+1.0)));
+    arrivalTimeOfPrevPatient = nextPatient->arrivalTime;
+    nextPatient->nurseNumber = -99999;
+    nextPatient->roomNumber = -99999;
+    nextPatient->arrivalTimeIntoPQ = -99999;
+    nextPatient->priorityValue = -99999;
 
-    Event nextPatientArrival;
-    nextPatientArrival.timeOfEvent = nextPatient.arrivalTime;
-    nextPatientArrival.type = 0;
-    nextPatientArrival.patient = nextPatient;
+    Event* nextPatientArrival = new Event;
+    nextPatientArrival->timeOfEvent = nextPatient->arrivalTime;
+    nextPatientArrival->type = 0;
+    nextPatientArrival->patient = nextPatient;
+    nextPatientArrival->room = NULL;
     eventList->push(nextPatientArrival);
 
-    return nextPatient;
+    //return nextPatient;
 }
 
 void printStatistics(int numDepartures, double avgNumberPatients, double EQAvgWaitingTime
@@ -118,80 +136,113 @@ void printStatistics(int numDepartures, double avgNumberPatients, double EQAvgWa
 
 void simulation(){
 
-    double avgNumPatients;
+    double avgNumPatients = 0;
     double cumulativeArea = 0;
 
-
     //Initialize the first patient
-    Patient firstPatient;
-    firstPatient.arrivalTime = arrivalTimeOfPrevPatient + (-(1 / lambda) * log(rand() / (RAND_MAX + 1.0)));
-    firstPatient.evaluationTime = (-(1 / mu_eval) * log(rand() / (RAND_MAX + 1.0)));
-    firstPatient.treatmentTime = (-(1 / mu_treatment) * log(rand() / (RAND_MAX + 1.0)));
-    arrivalTimeOfPrevPatient = firstPatient.arrivalTime;
+    Patient* firstPatient = new Patient;
+    firstPatient->arrivalTime = arrivalTimeOfPrevPatient + (-(1 / lambda) * log(rand() / (RAND_MAX + 1.0)));
+    firstPatient->evaluationTime = (-(1 / mu_eval) * log(rand() / (RAND_MAX + 1.0)));
+    firstPatient->treatmentTime = 0;
+    firstPatient->nurseNumber = -99999;
+    firstPatient->roomNumber = -99999;
+    firstPatient->arrivalTimeIntoPQ = -99999;
+    firstPatient->priorityValue = -99999;
+    arrivalTimeOfPrevPatient = firstPatient->arrivalTime;
 
     //Initialize the first event and push it into the event list
-    Event firstPatientArriving;
-    firstPatientArriving.timeOfEvent = firstPatient.arrivalTime;
-    firstPatientArriving.type = 0;
-    firstPatientArriving.patient = firstPatient;
+    Event* firstPatientArriving = new Event;
+    firstPatientArriving->timeOfEvent = firstPatient->arrivalTime;
+    firstPatientArriving->type = 0;
+    firstPatientArriving->patient = clonePatient(firstPatient);
+    firstPatientArriving->room = NULL;
     eventList->push(firstPatientArriving);
-
+    delete firstPatient;
     //Initialize subsystems
-    EvaluationQueue EQueue = EvaluationQueue(num_nurses, total_patients);
+    EvaluationQueue EQueue = EvaluationQueue(num_nurses, total_patients, mu_treatment);
     PriorityQueue PQueue = PriorityQueue(num_rooms);
     RoomCleanUpQueue RoomQueue = RoomCleanUpQueue(mu_cleanup, num_janitors);
 
-    Patient currentPatient = firstPatient;
     double timeLastEvent = 0;
-    while(currentTime/60 < 30){
+
+    //Main loop of simulation
+    while(currentTime < 1800){
 
         if(eventList->isEmpty()){
             cout << "Event list is empty!" << endl;
             return;
         }
+        //cout << "Before popping" << endl;
+        //eventList->dumpEventList();
 
-        Event earlistEvent = eventList->peek();
+        Event* earlistEvent = eventList->peek();
         eventList->pop();
-        currentTime = earlistEvent.timeOfEvent;
-        cout << currentTime << endl;
+        currentTime = earlistEvent->timeOfEvent;
+
+        //cout << "After popping" << endl;
+        //eventList->dumpEventList();
+
+        //cout << earlistEvent->type << endl;
         cumulativeArea += (currentTime-timeLastEvent)*(EQueue.returnNumPatientsInEQueue()+PQueue.returnNumPatientsInPQ());
         timeLastEvent = currentTime;
-        if(earlistEvent.type == 0){
-            currentPatient = processNewArrival(currentPatient, earlistEvent);
-        } else if(earlistEvent.type == 1){
-            EQueue.processArrivalIntoQueue(earlistEvent.patient, eventList
+        if(earlistEvent->type == 0){
+            //cout << "creating another patient" << endl << currentTime << endl;
+            processNewArrival(earlistEvent->patient, earlistEvent);
+        } else if(earlistEvent->type == 1){
+            //cout << "Patient entering E queue" << endl << currentTime << endl;
+            EQueue.processArrivalIntoQueue(earlistEvent->patient, eventList
                                            , PQueue.returnNumPatientsInPQ());
-        } else if(earlistEvent.type == 2){
+        } else if(earlistEvent->type == 2){
+            //cout << "Patient being evaluated in E queue" << endl << currentTime << endl;
             EQueue.processEvaluation(earlistEvent, eventList, currentTime);
-        } else if(earlistEvent.type == 3){
+        } else if(earlistEvent->type == 3){
+            //cout << "Patient leaving E queue" << endl << currentTime << endl;
             EQueue.processDeparture(earlistEvent, eventList, currentTime);
-        } else if(earlistEvent.type == 4){
-            PQueue.processArrivalIntoPriorityQueue(earlistEvent.patient, eventList);
-        } else if(earlistEvent.type == 5){
+        } else if(earlistEvent->type == 4){
+            //PQueue.dumpPQ();
+            //cout << "Patient entering P queue" << endl << currentTime << endl;
+            PQueue.processArrivalIntoPriorityQueue(earlistEvent, eventList);
+            //PQueue.dumpPQ();
+
+        } else if(earlistEvent->type == 5){
+            //cout << "Patient being treated in P queue" << endl << currentTime << endl;
             PQueue.processTreatmentEvent(earlistEvent, eventList, currentTime);
-        } else if(earlistEvent.type == 6){
+        } else if(earlistEvent->type == 6){
+            //PQueue.dumpPQ();
+
+            //cout << "Patient leaving P queue" << endl << currentTime << endl;
             PQueue.processDepartureFromPQ(earlistEvent, eventList, currentTime);
-        } else if(earlistEvent.type == 7){
+        } else if(earlistEvent->type == 7){
+            //cout << "Room waiting to be cleaned up" << endl << currentTime << endl;
             RoomQueue.processArrivalForCleanUp(earlistEvent, eventList, currentTime);
-        } else if(earlistEvent.type == 8){
-            RoomQueue.processCleanUp(earlistEvent, eventList);
-        } else if(earlistEvent.type == 9){
+        } else if(earlistEvent->type == 8){
+            //cout << "Room being cleaned up" << endl << currentTime << endl;
+            RoomQueue.processCleanUp(earlistEvent, eventList, currentTime);
+        } else if(earlistEvent->type == 9){
+            //cout << "Room is done being cleaned" << endl << currentTime << endl;
             RoomQueue.processFinishingCleanUp(earlistEvent, eventList);
-        } else if(earlistEvent.type == 10){
+        } else if(earlistEvent->type == 10){
+            //cout << "Ready to treat another patient" << endl;
+            //cout << currentTime << endl;
             PQueue.processFinishingCleanUp(earlistEvent, eventList);
         }
 
-        avgNumPatients = cumulativeArea/currentTime;
-        if(currentTime/60 == 5){
-            printStatistics(PQueue.returnNumDepartures(), avgNumPatients
-                    , EQueue.returnAvgWaitTime(), PQueue.returnAvgWaitTime()
-                    , PQueue.returnAvgResponseTime(),
-                            RoomQueue.returnAvgCleanUpTime(),
-                            EQueue.returnDroppedArrivals());
+        if(earlistEvent->patient != NULL){
+            //cout << "Deleting earlistEvent->patient" << endl;
+            delete earlistEvent->patient;
         }
+        if(earlistEvent->room != NULL){
+            //cout << "Deleting earlistEvent->room" << endl;
+            delete earlistEvent->room;
+        }
+        //cout << "Deleting earlistEvent" << endl;
+        delete earlistEvent;
     }
+
+    PQueue.dumpPQ();
     avgNumPatients = cumulativeArea/currentTime;
     printStatistics(PQueue.returnNumDepartures(), avgNumPatients, EQueue.returnAvgWaitTime(), PQueue.returnAvgWaitTime(), PQueue.returnAvgResponseTime(),RoomQueue.returnAvgCleanUpTime(),EQueue.returnDroppedArrivals());
+    //eventList->dumpEventList();
     delete eventList;
 }
 
