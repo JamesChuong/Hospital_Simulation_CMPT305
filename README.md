@@ -1,4 +1,4 @@
-In this assignment, you will implement some of the basic elements of an event-driven simulation of a system with two dependent queues. The details of the system are described below.
+Implementation of some basic elements of an event-driven simulation of a system with two dependent queues. The details of the system are described below.
 
 # Background:
 You need to model a major metropolitan hospital's Emergency Department. The department has an occupancy of B total patients including R single-occupancy patient rooms and B-R patients in the waiting area. 
@@ -24,8 +24,7 @@ leave immediately if the department is at full capacity and get transferred to a
 # Random Variate Generation:
 Visitor interarrival time and both queues’ service time distributions are exponential. Arrivals are generated based on the mean interarrival time minutes. Service time of the "E" queue is based on a service 
 time distribution with mean service time 1/(mu_e) minutes. Service time of the "P" queue is based on a service time distribution with mean service time minutes depending on priority value. Additional time for 
-room cleanup is based on constant time 1/(mu_c) minutes if a janitor is available. You will need to write a separate function for each distribution to generate values for arrival times and service times per 
-server based on the exponential distribution. 
+room cleanup is based on constant time 1/(mu_c) minutes if a janitor is available.
 
 # Start and End of Simulation:
 Simulation starts at 12 AM, and ends at 6 AM the following day. You should discard statistics from the first 6 hours of simulation and only report results from the last 24 hours. 
